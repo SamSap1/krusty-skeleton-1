@@ -166,9 +166,28 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 		return "{\"cookies\":[]}";
 	}
 
+	//jag
 	public String getRecipes(Request req, Response res) {
-		return "{}";
+
+
+		try{
+
+        String sql = "select Recipe.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName"
+		PreparedStatement ps = conn.prepareStatement(sql);
+		resultSet rs = ps.executeQuery(sql);
+
+		String jsonResult = getJson(rs);
+		rs.close();
+		ps.close();
+        return jsonResult;
+		}
+		catch(SQLException){
+			e.printStackTrace();
+
+		}
 	}
+
+	//jag
 
 	public String getPallets(Request req, Response res) {
 		return "{\"pallets\":[]}";
