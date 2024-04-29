@@ -268,10 +268,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 				e.printStackTrace();
 				return "Error processing result set: " + e.getMessage();
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return "Error preparing SQL statement: " + e.getMessage();
-		}
+		} 
 	}
 	
 
