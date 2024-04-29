@@ -188,15 +188,83 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 
 	//jag
 
-	public String getPallets(Request req, Response res) {
-
-		return "{\"pallets\":[]}";
-
-
-
-
-
+	public String getPallets(Request req, Response res) throws SQLException {
+		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked FROM Pallet INNER JOIN Orders ON Orders.orderID = Pallet.orderID";
+		String title = "pallets";
+		StringBuilder sb = new StringBuilder();
+	
+		sb.append(sql);
+	
+		List<String> paramList = Arrays.asList("from", "to", "cookie", "blocked");
+		HashMap<String, String> map = new HashMap<>();
+	
+		for (String param : paramList) {
+			if (req.queryParams(param) != null) {
+				map.put(param, req.queryParams(param));
+			}
+		}
+	
+		if (map.size() > 0) {
+			sb.append(" WHERE");
+		}
+	
+		int size = 1;
+	
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			switch (entry.getKey()) {
+				case "from":
+					sb.append(" Pallet.ProductionDate >= ?");
+					break;
+				case "to":
+					sb.append(" Pallet.ProductionDate <= ?");
+					break;
+				case "blocked":
+					sb.append(" Pallet.blocked = ?");
+					break;
+				case "cookie":
+					sb.append(" Pallet.productName = ?");
+					break;
+				default:
+					break;
+			}
+			if (map.size() > size) {
+				size++;
+				sb.append(" AND");
+			}
+		}
+	
+		PreparedStatement stmt = conn.prepareStatement(sb.toString());
+	
+		int i = 1;
+	
+		for (Map.Entry<String, String> entry : map.entrySet()) {
+			switch (entry.getKey()) {
+				case "from":
+					stmt.setDate(i, Date.valueOf(req.queryParams("from")));
+					break;
+				case "to":
+					stmt.setDate(i, Date.valueOf(req.queryParams("to")));
+					break;
+				case "blocked":
+					stmt.setString(i, req.queryParams("blocked"));
+					break;
+				case "cookie":
+					stmt.setString(i, req.queryParams("cookie"));
+					break;
+				default:
+					break;
+			}
+			i++;
+		}
+	
+		ResultSet rs = stmt.executeQuery();
+	
+		String result = Jsonizer.toJson(rs, title);
+		System.out.println(result);
+	
+		return result;
 	}
+	
 
 	public String reset(Request req, Response res) {
 		return "{}";
