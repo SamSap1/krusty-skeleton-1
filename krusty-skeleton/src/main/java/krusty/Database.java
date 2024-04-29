@@ -188,7 +188,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 
 	//jag
 
-	public String getPallets(Request req, Response res) throws SQLException {
+	public String getPallets(Request req, Response res) {
 		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked FROM Pallet INNER JOIN Orders ON Orders.orderID = Pallet.orderID";
 		String title = "pallets";
 		StringBuilder sb = new StringBuilder();
@@ -233,36 +233,45 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 			}
 		}
 	
-		PreparedStatement stmt = conn.prepareStatement(sb.toString());
+		try (
+			PreparedStatement stmt = conn.prepareStatement(sb.toString())
+		) {
+			int i = 1;
 	
-		int i = 1;
-	
-		for (Map.Entry<String, String> entry : map.entrySet()) {
-			switch (entry.getKey()) {
-				case "from":
-					stmt.setDate(i, Date.valueOf(req.queryParams("from")));
-					break;
-				case "to":
-					stmt.setDate(i, Date.valueOf(req.queryParams("to")));
-					break;
-				case "blocked":
-					stmt.setString(i, req.queryParams("blocked"));
-					break;
-				case "cookie":
-					stmt.setString(i, req.queryParams("cookie"));
-					break;
-				default:
-					break;
+			for (Map.Entry<String, String> entry : map.entrySet()) {
+				switch (entry.getKey()) {
+					case "from":
+						stmt.setDate(i, Date.valueOf(req.queryParams("from")));
+						break;
+					case "to":
+						stmt.setDate(i, Date.valueOf(req.queryParams("to")));
+						break;
+					case "blocked":
+						stmt.setString(i, req.queryParams("blocked"));
+						break;
+					case "cookie":
+						stmt.setString(i, req.queryParams("cookie"));
+						break;
+					default:
+						break;
+				}
+				i++;
 			}
-			i++;
+	
+			try (
+				ResultSet rs = stmt.executeQuery()
+			) {
+				String result = Jsonizer.toJson(rs, title);
+				System.out.println(result);
+				return result;
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return "Error processing result set: " + e.getMessage();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return "Error preparing SQL statement: " + e.getMessage();
 		}
-	
-		ResultSet rs = stmt.executeQuery();
-	
-		String result = Jsonizer.toJson(rs, title);
-		System.out.println(result);
-	
-		return result;
 	}
 	
 
