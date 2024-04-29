@@ -183,14 +183,19 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 		}
 		catch(SQLException){
 			e.printStackTrace();
-
 		}
 	}
 
 	//jag
 
 	public String getPallets(Request req, Response res) {
+
 		return "{\"pallets\":[]}";
+
+
+
+
+
 	}
 
 	public String reset(Request req, Response res) {
