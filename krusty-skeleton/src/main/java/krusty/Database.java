@@ -185,7 +185,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	//jag
 
 	public String getPallets(Request req, Response res) {
-		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked FROM Pallet INNER JOIN Orders ON Orders.orderID = Pallet.orderID";
+		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked from Pallet inner join Orders on Orders.orderID = Pallet.orderID";
 		String title = "pallets";
 		StringBuilder sb = new StringBuilder();
 	
