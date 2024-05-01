@@ -6,8 +6,11 @@ import spark.Response;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -26,7 +29,7 @@ public class Database {
 	private static final String jdbcString = "jdbc:mysql://puccini.cs.lth.se/hbg07?user="+jdbcUsername+"&password=" +jdbcPassword;;
 
 
-	private static final String Customersdef = "INSERT INTO customer(customerName, address) VALUES" + 
+	private static final String Customersdef = "INSERT INTO Customer(customerName, address) VALUES" + 
 	"   ('Finkakor AB', 'Helsingborg'), " +
     "   ('Småbröd AB', 'Malmö')," +
     "   ('Kaffebröd AB', 'Landskrona')," + 
@@ -39,7 +42,7 @@ public class Database {
 ;
 
 
-private static final String Cookiedef = "INSERT INTO cookie (productName) VALUES" + 
+private static final String Cookiedef = "INSERT INTO Cookie (productName) VALUES" + 
 "   ('Almond delight')," +
 "   ('Amneris')," +
 "   ('Berliner')," + 
@@ -49,7 +52,7 @@ private static final String Cookiedef = "INSERT INTO cookie (productName) VALUES
 ";"
 ;
 
-private static final String Ingredientsdef = "INSERT INTO ingredients (ingredientName, QuantityInStorage, Unit) VALUES" +
+private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredientName, QuantityInStorage, Unit) VALUES" +
     "   ('Bread crumbs', 500000, 'g'),"+
     "   ('Butter', 500000, 'g'),"+
     "   ('Chocolate', 500000, 'g'),"+
@@ -72,7 +75,7 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 	";"
 	;
 
-	private static final String Recipesdef = "INSERT INTO recipe(productName, ingredientName, Quantity) VALUES" +
+	private static final String Recipesdef = "INSERT INTO Recipe(productName, ingredientName, Quantity) VALUES" +
 	"VALUES( 'Almond delight', 'Butter', 400),"+
 	"VALUES( 'Almond delight', 'Chopped almonds', 279),"+
 	"VALUES( 'Almond delight', 'Cinnamon', 10),"+
@@ -185,7 +188,7 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 
 		try{
 
-        String sql = "SELECT Recipes.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName";
+        String sql = "SELECT Recipe.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName";
 		PreparedStatement ps = conn.prepareStatement(sql);
 		resultSet rs = ps.executeQuery(sql);
 		String result = krusty.Jsonizer.toJson(rs, "recipes");
@@ -287,12 +290,12 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 		PreparedStatement pstmt = conn.prepareStatement("SET foreign_key_checks = 0;");
 		pstmt.executeUpdate();
 
-		truncateTable ("recipe");
+		truncateTable ("Recipe");
 		truncateTable ("orderSpec");
-		truncateTable ("pallet");
-		truncateTable ("orders");
-		truncateTable ("ingredients");
-		truncateTable ("customer");
+		truncateTable ("Pallet");
+		truncateTable ("Orders");
+		truncateTable ("Ingredients");
+		truncateTable ("Customer");
 
 	 pstmt = conn.prepareStatement("SET foreign_key_checks = 1;");
 		pstmt.executeUpdate();
@@ -323,7 +326,47 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 	}
 
 	public String createPallet(Request req, Response res) {
-		return "{}";
+		  
+            String cookie = req.queryParams("cookie");
+            String createPallet = "INSERT INTO Pallet (blocked, ProductionDate,productName) VALUES (no, NOW(),?)";
+            String updateIngredients = "UPDATE Ingredients" + 
+            "SET QuantityInStorage= QuantityInStorage - IFNULL("+ 
+            "SELECT 54* Quantity" + 
+            "FROM Recipe" + 
+            "WHERE productName = ?" + 
+            "And Ingredients.name = Recipe.ingredientName" + 
+            "),0"+ 
+            ");";
+
+            conn.setAutoCommit(false); 
+
+            try(
+                PreparedStatement ps = conn.prepareStatement(createPallet);
+                PreparedStatement ps2 = conn.prepareStatement(updateIngredients)){
+                    ps.setString(1,selectedCookie);
+                    int palletCreated = ps.executeUpdate();
+                    if(palletCreated == 0) {
+						return "{\"status\": \"unknown cookie\"}";
+					};
+
+                    ps.setString(1, selectedCookie);
+                    int ingredientUpdate = psUpdate.executeUpdate();
+
+                    if (palletCreated >0 && ingredientUpdate >0){
+                        conn.commit();
+                        return "{\"status\": \"id " + getPalletid() + "\"}"; 
+                    }
+                    else{
+                        conn.rollback();
+                    }
+
+                } catch (SQLException e ){
+                    conn.rollback();
+                    e.printStackTrace();
+                    return "{\"status\": \"error\"}";
+                }
+        
+        return "{}";
 	}
 
 	//Privat hjälpmetod som utför trunkering av tabeller. Används i reset
