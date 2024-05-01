@@ -186,13 +186,11 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 		try{
 
         String sql = "SELECT Recipes.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName";
+        String sql = "select Recipe.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName"
 		PreparedStatement ps = conn.prepareStatement(sql);
 		resultSet rs = ps.executeQuery(sql);
-
-		String jsonResult = getJson(rs);
-		rs.close();
-		ps.close();
-        return jsonResult;
+		String result = krusty.Jsonizer.toJson(rs, "recipes");
+        return result;
 		}
 		catch(SQLException e){
 			e.printStackTrace();
@@ -202,7 +200,7 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 	//jag
 
 	public String getPallets(Request req, Response res) {
-		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked FROM Pallet INNER JOIN Orders ON Orders.orderID = Pallet.orderID";
+		String sql = "SELECT Pallet.palletID, Pallet.productName AS cookie, Pallet.ProductionDate, Orders.customerName AS customer, Pallet.blocked from Pallet inner join Orders on Orders.orderID = Pallet.orderID";
 		String title = "pallets";
 		StringBuilder sb = new StringBuilder();
 	
@@ -274,7 +272,7 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 			try (
 				ResultSet rs = stmt.executeQuery()
 			) {
-				String result = Jsonizer.toJson(rs, title);
+				String result = krusty.Jsonizer.toJson(rs, "pallets");
 				System.out.println(result);
 				return result;
 			} catch (SQLException e) {
