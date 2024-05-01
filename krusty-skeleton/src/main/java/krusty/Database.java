@@ -247,8 +247,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 		}
 	
 		try (
-			PreparedStatement stmt = conn.prepareStatement(sb.toString())
-		) {
+			PreparedStatement stmt = conn.prepareStatement(sb.toString());) {
 			int i = 1;
 	
 			for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -270,19 +269,21 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 				}
 				i++;
 			}
+		}
 	
 			try (
-				ResultSet rs = stmt.executeQuery()
+				ResultSet rs = stmt.executeQuery();
 			) {
 				String result = krusty.Jsonizer.toJson(rs, "pallets");
 				System.out.println(result);
 				return result;
-			} catch (SQLException e) {
+			}
+			 catch (SQLException e) {
 				e.printStackTrace();
 				return "Error processing result set: " + e.getMessage();
 			}
-		} 
-	}
+		}
+	
 	
 
 	public String reset(Request req, Response res) {
