@@ -186,7 +186,6 @@ private static final String Ingredientsdef = "INSERT INTO ingredients (ingredien
 		try{
 
         String sql = "SELECT Recipes.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName";
-        String sql = "select Recipe.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName"
 		PreparedStatement ps = conn.prepareStatement(sql);
 		resultSet rs = ps.executeQuery(sql);
 		String result = krusty.Jsonizer.toJson(rs, "recipes");
