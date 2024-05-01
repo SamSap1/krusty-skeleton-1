@@ -26,7 +26,7 @@ public class Database {
 	private static final String jdbcString = "jdbc:mysql://puccini.cs.lth.se/hbg07?user="+jdbcUsername+"&password=" +jdbcPassword;;
 
 
-	private static final String Customersdef = "INSERT INTO Customers(customerName, address) VALUES" + 
+	private static final String Customersdef = "INSERT INTO customer(customerName, address) VALUES" + 
 	"   ('Finkakor AB', 'Helsingborg'), " +
     "   ('Småbröd AB', 'Malmö')," +
     "   ('Kaffebröd AB', 'Landskrona')," + 
@@ -39,7 +39,7 @@ public class Database {
 ;
 
 
-private static final String Cookiedef = "INSERT INTO Cookie (productName) VALUES" + 
+private static final String Cookiedef = "INSERT INTO cookie (productName) VALUES" + 
 "   ('Almond delight')," +
 "   ('Amneris')," +
 "   ('Berliner')," + 
@@ -49,7 +49,7 @@ private static final String Cookiedef = "INSERT INTO Cookie (productName) VALUES
 ";"
 ;
 
-private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredientName, QuantityInStorage, Unit) VALUES" +
+private static final String Ingredientsdef = "INSERT INTO ingredients (ingredientName, QuantityInStorage, Unit) VALUES" +
     "   ('Bread crumbs', 500000, 'g'),"+
     "   ('Butter', 500000, 'g'),"+
     "   ('Chocolate', 500000, 'g'),"+
@@ -72,7 +72,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	";"
 	;
 
-	private static final String Recipesdef = "INSERT INTO Recipe(productName, ingredientName, Quantity) VALUES" +
+	private static final String Recipesdef = "INSERT INTO recipe(productName, ingredientName, Quantity) VALUES" +
 	"VALUES( 'Almond delight', 'Butter', 400),"+
 	"VALUES( 'Almond delight', 'Chopped almonds', 279),"+
 	"VALUES( 'Almond delight', 'Cinnamon', 10),"+
@@ -141,7 +141,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 			String query = "SELECT customerName AS name, address as address FROM Customer";
 			PreparedStatement conn = conn.prepareStatement(query);
 			ResultSet resultSet = prepare.executeQuery();
-			String json = Jsonizer.toJson(reusltset, "customers");
+			String json = Jsonizer.toJson(reusltSet, "customers");
 			return json;
 
 		}
@@ -159,6 +159,19 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	}
 
 	public String getRawMaterials(Request req, Response res) {
+		try {
+		String query = "SELECT ingredientName AS Name, QuantityInStorage as Quantity, Unit FROM Ingredients";
+		PreparedStatement conn = conn.prepareStatement(query);
+		ResultSet resultSet = prepare.executeQuery();
+		String json = Jsonizer.toJson(resultSet, "RawMaterials");
+		return json;
+
+		} catch (SQLException e) {
+			System.out.println("SQLMessage" + e.getMessage());
+			System.out.println("SQLState:" + e.getSQLState());
+			System.out.println("Error:" + e.getErrorCode());
+		}
+		
 		return "{}";
 	}
 
@@ -172,7 +185,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 
 		try{
 
-        String sql = "select Recipe.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName"
+        String sql = "SELECT Recipes.productName, Recipe.ingredientName, Recipe.Quantity, Ingredients.QuantityInStorage, Ingredients.Unit from Recipe, Ingredients where Recipe.ingredientName= Ingredients.ingredientName";
 		PreparedStatement ps = conn.prepareStatement(sql);
 		resultSet rs = ps.executeQuery(sql);
 
@@ -181,7 +194,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 		ps.close();
         return jsonResult;
 		}
-		catch(SQLException){
+		catch(SQLException e){
 			e.printStackTrace();
 		}
 	}
@@ -273,10 +286,56 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	
 
 	public String reset(Request req, Response res) {
+	try{
+		PreparedStatement pstmt = conn.prepareStatement("SET foreign_key_checks = 0;");
+		pstmt.executeUpdate();
+
+		truncateTable ("recipe");
+		truncateTable ("orderSpec");
+		truncateTable ("pallet");
+		truncateTable ("orders");
+		truncateTable ("ingredients");
+		truncateTable ("customer");
+
+	 pstmt = conn.prepareStatement("SET foreign_key_checks = 1;");
+		pstmt.executeUpdate();
+
+		pstmt = conn.prepareStatement(Customersdef);
+		pstmt.executeUpdate();
+
+		pstmt = conn.prepareStatement(Cookiedef);
+		pstmt.executeUpdate();
+
+		pstmt = conn.prepareStatement(Ingredientsdef);
+		pstmt.executeUpdate();
+
+		pstmt = conn.prepareStatement(Recipesdef);
+		pstmt.executeUpdate();
+
+
+
+	}
+	catch (SQLException e){
+		System.out.println("SQLMessage" + e.getMessage());
+		System.out.println("SQLState:" + e.getSQLState());
+		System.out.println("Error:" + e.getErrorCode());
+
+	}
+		
 		return "{}";
 	}
 
 	public String createPallet(Request req, Response res) {
 		return "{}";
 	}
+
+	//Privat hjälpmetod som utför trunkering av tabeller. Används i reset
+	private void truncateTable (String table){
+		String truncate = "TRUNCATE TABLE " + table;
+		PReparedStatement pstmt = conn.prepareStatement(truncate);
+		pstmt.executeUpdate();
+
+
+	}
+
 }
