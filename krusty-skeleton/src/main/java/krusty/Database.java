@@ -8,12 +8,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
+import java.sql.Statement;
+import java.util.*;
 import static krusty.Jsonizer.toJson;
 
 public class Database {
@@ -24,6 +20,34 @@ public class Database {
 	 //TO DO
 
 	// For use with MySQL or PostgreSQL
+
+
+	private Connection conn;
+	public void connect() {
+		try {
+			conn = DriverManager.getConnection(jdbcString, jdbcUsername, jdbcPassword);
+
+		} catch (SQLException e){
+			e.printStackTrace();
+			System.out.println("Connection failed");
+			System.exit(1);
+		}
+
+
+	}
+
+	public void close(){
+		try {
+			if (conn!= null){
+				conn.close();
+			}
+		} catch (SQLException e) {
+				e.printStackTrace();
+		}
+
+
+	}
+
 	private static final String jdbcUsername = "hbg07";
 	private static final String jdbcPassword = "sbz864po";
 	private static final String jdbcString = "jdbc:mysql://puccini.cs.lth.se/hbg07?user="+jdbcUsername+"&password=" +jdbcPassword;;
@@ -112,39 +136,13 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
    
 
 
-	private Connection conn;
-	public void connect() {
-		try {
-			conn = DriverManager.getConnection(jdbcString, jdbcUsername, jdbcPassword);
-
-		} catch (SQLException e){
-			e.printStackTrace();
-			System.out.println("Connection failed");
-			System.exit(1);
-		}
-
-
-	}
-
-	public void close(){
-		try {
-			if (conn!= null){
-				conn.close();
-			}
-		} catch (SQLException e) {
-				e.printStackTrace();
-		}
-
-
-	}
-
 
 	public String getCustomers(Request req, Response res) {
 		try {
 			String query = "SELECT customerName AS name, address as address FROM Customer";
 			PreparedStatement conn = conn.prepareStatement(query);
 			ResultSet resultSet = prepare.executeQuery();
-			String json = Jsonizer.toJson(reusltSet, "customers");
+			String json = Jsonizer.toJson(resultSet, "customers");
 			return json;
 
 		}
@@ -179,8 +177,65 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	}
 
 	public String getCookies(Request req, Response res) {
-		return "{\"cookies\":[]}";
+		try {
+            String cookieName = "SELECT productName AS name, address as address FROM Cookie";
+            PreparedStatement conn = conn.prepareStatement(cookieName);
+            ResultSet resultSet = prepare.executeQuery();
+            String json = Jsonizer.toJson(resultSet,"cookie");
+            return json;
+        }
+        catch(SQLException e){
+                    System.out.println("SQLMessage" + e.getMessage());
+                    System.out.println("SQLState" + e.getSQLState());
+                    System.out.println("Error:" + e.getErrorCode());
+        }
+
+        return "{}";
+    }
+	public String createPallet(Request req, Response res) {
+		String cookie = req.queryParams("cookie");
+		String createPallet = "INSERT INTO Pallet (blocked, ProductionDate, productName) VALUES ('no', NOW(), ?)";
+		String updateIngredients = "UPDATE Ingredients " +
+				"SET QuantityInStorage = QuantityInStorage - IFNULL( " +
+				"   (SELECT 54 * Quantity " +
+				"    FROM Recipe " +
+				"    WHERE productName = ? " +
+				"    AND Ingredients.ingredientName = Recipe.ingredientName " +
+				"), 0);";
+	
+		conn.setAutoCommit(false);
+	
+		try (
+			PreparedStatement ps = conn.prepareStatement(createPallet);
+			PreparedStatement ps2 = conn.prepareStatement(updateIngredients)
+		) {
+			ps.setString(1, cookie);
+			int palletCreated = ps.executeUpdate();
+			if (palletCreated == 0) {
+				return "{\"status\": \"unknown cookie\"}";
+			}
+	
+			ps2.setString(1, cookie);
+			int ingredientUpdate = ps2.executeUpdate();
+	
+			if (palletCreated > 0 && ingredientUpdate > 0) {
+				conn.commit();
+				return "{\"status\": \"id " + getPalletid() + "\"}";
+			} else {
+				conn.rollback();
+				return "{\"status\": \"error\"}";
+			}
+		} catch (SQLException e) {
+			try {
+				conn.rollback();
+			} catch (SQLException ex) {
+				ex.printStackTrace();
+			}
+			e.printStackTrace();
+			return "{\"status\": \"error\"}";
+		}
 	}
+	
 
 	//jag
 	public String getRecipes(Request req, Response res) {
@@ -373,7 +428,7 @@ private static final String Ingredientsdef = "INSERT INTO Ingredients (ingredien
 	//Privat hjälpmetod som utför trunkering av tabeller. Används i reset
 	private void truncateTable (String table){
 		String truncate = "TRUNCATE TABLE " + table;
-		PReparedStatement pstmt = conn.prepareStatement(truncate);
+		PreparedStatement pstmt = conn.prepareStatement(truncate);
 		pstmt.executeUpdate();
 
 
